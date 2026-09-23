@@ -3,7 +3,7 @@ import streamlit as st
 
 st.set_page_config(page_title="코인 구매 계산기", layout="centered")
 
-# UI 스타일링 (버튼, 텍스트창, 한글 배지 크기 확대)
+# UI 스타일링 (대형 입력창, 대형 버튼, 한글 배지)
 st.markdown(
     """
     <style>
@@ -25,16 +25,19 @@ st.markdown(
         font-size: 1.15rem !important;
         font-weight: 700 !important;
     }
-    [data-testid="stMetricValue"] {
-        font-size: 2.2rem !important;
-        font-weight: 800 !important;
-    }
     .amount-badge {
-        font-size: 1.15rem;
+        font-size: 1.1rem;
         font-weight: 700;
         color: #1E88E5;
         margin-top: -6px;
         margin-bottom: 12px;
+    }
+    .sync-badge {
+        text-align: center;
+        font-size: 1.3rem;
+        font-weight: 800;
+        color: #888;
+        margin: 10px 0;
     }
     </style>
 """,
@@ -42,7 +45,7 @@ st.markdown(
 )
 
 
-# 한글 금액 단위 변환 함수 (10000 -> 1만 원, 150000 -> 15만 원)
+# 한글 금액 단위 변환 함수
 def to_korean_money(val: int) -> str:
   if val <= 0:
     return "0원"
@@ -60,6 +63,12 @@ def to_korean_money(val: int) -> str:
   return " ".join(parts) + " 원"
 
 
+# 숫자 파싱 도우미
+def parse_int(s: str) -> int:
+  digits = "".join(c for c in s if c.isdigit())
+  return int(digits) if digits else 0
+
+
 # 실시간 환율 API
 @st.cache_data(ttl=60)
 def fetch_usd_krw_rate():
@@ -72,150 +81,225 @@ def fetch_usd_krw_rate():
 
 
 # 세션 상태 초기화
+live_rate = fetch_usd_krw_rate()
+
 if "mode" not in st.session_state:
   st.session_state.mode = "usd"
-if "n_str" not in st.session_state:
-  st.session_state.n_str = "10,000"
-
-live_rate = fetch_usd_krw_rate()
 if "e_val" not in st.session_state:
   st.session_state.e_val = live_rate
+if "x_val" not in st.session_state:
+  st.session_state.x_val = 1450.0
+if "y_val" not in st.session_state:
+  st.session_state.y_val = 5.0
+
+if "n_str" not in st.session_state:
+  st.session_state.n_str = "10,000"
+if "final_str" not in st.session_state:
+  init_n = 10000
+  init_final = (init_n / live_rate) * 1450.0
+  st.session_state.final_str = f"{int(round(init_final)):,}"
 
 
-# 금액 입력값 자동 쉼표 포맷팅 콜백
-def format_n():
-  raw = "".join(c for c in st.session_state.n_str if c.isdigit())
-  st.session_state.n_str = f"{int(raw):,}" if raw else "0"
+# 1. 구매 코인 금액(N) 변경 시 -> 최종 지출 계산
+def on_n_change():
+  n = parse_int(st.session_state.n_str)
+  st.session_state.n_str = f"{n:,}"
+
+  if st.session_state.mode == "usd":
+    e = st.session_state.e_val
+    x = st.session_state.x_val
+    final = (n / e) * x if e > 0 else 0
+  else:
+    y = st.session_state.y_val
+    final = n * (1 + y / 100)
+
+  st.session_state.final_str = f"{int(round(final)):,}"
 
 
-# 금액 빠른 증감 콜백
-def add_amount(delta):
-  raw = "".join(c for c in st.session_state.n_str if c.isdigit())
-  current = int(raw) if raw else 0
-  new_val = max(0, current + delta)
-  st.session_state.n_str = f"{new_val:,}"
+# 2. 최종 지출 금액 변경 시 -> 구매 코인 금액(N) 역산
+def on_final_change():
+  final = parse_int(st.session_state.final_str)
+  st.session_state.final_str = f"{final:,}"
+
+  if st.session_state.mode == "usd":
+    e = st.session_state.e_val
+    x = st.session_state.x_val
+    n = (final / x) * e if x > 0 else 0
+  else:
+    y = st.session_state.y_val
+    multiplier = 1 + y / 100
+    n = final / multiplier if multiplier > 0 else 0
+
+  st.session_state.n_str = f"{int(round(n)):,}"
 
 
-def reset_amount():
-  st.session_state.n_str = "0"
+# 파라미터(환율 or 퍼센트) 변경 시 자동 재계산
+def on_param_change():
+  on_n_change()
 
 
+# 빠른 증감 버튼 콜백
+def add_to_n(delta):
+  n = max(0, parse_int(st.session_state.n_str) + delta)
+  st.session_state.n_str = f"{n:,}"
+  on_n_change()
+
+
+def add_to_final(delta):
+  final = max(0, parse_int(st.session_state.final_str) + delta)
+  st.session_state.final_str = f"{final:,}"
+  on_final_change()
+
+
+# 환율 갱신 버튼 콜백
+def apply_live_rate():
+  st.cache_data.clear()
+  st.session_state.e_val = fetch_usd_krw_rate()
+  on_n_change()
+
+
+# ---------------------------------------------------------
+# UI 렌더링
+# ---------------------------------------------------------
 st.title("⚡ 코인 구매 계산기")
 
-# 1. 계산 모드 선택 대형 버튼
+# 계산 모드 선택 대형 버튼
 col_m1, col_m2 = st.columns(2)
 with col_m1:
   btn_usd = "primary" if st.session_state.mode == "usd" else "secondary"
   if st.button("💵 달러당 계산", type=btn_usd, use_container_width=True):
     st.session_state.mode = "usd"
+    on_n_change()
     st.rerun()
 
 with col_m2:
   btn_pct = "primary" if st.session_state.mode == "percent" else "secondary"
   if st.button("📊 퍼센트당 계산", type=btn_pct, use_container_width=True):
     st.session_state.mode = "percent"
+    on_n_change()
     st.rerun()
 
 st.divider()
 
-# 2. 구매 코인 원화 금액 (N) - 쉼표 자동 지원
-st.text_input(
-    "구매할 코인 금액 (원, N)",
-    key="n_str",
-    on_change=format_n,
-    placeholder="예: 10,000",
-)
-
-# 입력된 숫자 추출 및 한글 단위 표시
-raw_num = "".join(c for c in st.session_state.n_str if c.isdigit())
-n = int(raw_num) if raw_num else 0
-
-st.markdown(
-    f"<div class='amount-badge'>👉 현재 금액: <b>{n:,}원</b> ({to_korean_money(n)})</div>",
-    unsafe_allow_html=True,
-)
-
-# 간편 금액 조절 버튼
-btn_cols = st.columns(5)
-btn_cols[0].button(
-    "+1만", on_click=add_amount, args=(10000,), use_container_width=True
-)
-btn_cols[1].button(
-    "+5만", on_click=add_amount, args=(50000,), use_container_width=True
-)
-btn_cols[2].button(
-    "+10만", on_click=add_amount, args=(100000,), use_container_width=True
-)
-btn_cols[3].button(
-    "+100만", on_click=add_amount, args=(1000000,), use_container_width=True
-)
-btn_cols[4].button("초기화", on_click=reset_amount, use_container_width=True)
-
-st.write("")
-
-# ---------------------------------------------------------
-# 모드 1: 달러당 x원으로 구매
-# ---------------------------------------------------------
+# 조건 설정 영역
 if st.session_state.mode == "usd":
   st.caption(f"실시간 시장 환율: {live_rate:,.2f}원 / USD")
 
   if st.button(
       f"⚡ 현재 환율 바로 적용 ({live_rate:,.2f}원)",
       use_container_width=True,
+      on_click=apply_live_rate,
   ):
-    st.cache_data.clear()
-    st.session_state.e_val = fetch_usd_krw_rate()
-    st.rerun()
+    pass
 
-  e = st.number_input(
-      "현재 달러 환율 (원, E)",
-      min_value=0.01,
-      step=1.0,
-      format="%.2f",
-      key="e_val",
-  )
-
-  x = st.number_input(
-      "기준 환율 (1달러당 x원)",
-      min_value=0.01,
-      value=1450.0,
-      step=1.0,
-      format="%.2f",
-  )
-
-  if e > 0:
-    usd = n / e
-    final_krw = usd * x
-
-    st.divider()
-    col1, col2 = st.columns(2)
-    col1.metric("1차 환산 달러", f"${usd:,.4f}")
-    col2.metric("최종 지출 금액", f"{final_krw:,.0f} 원")
-
-    st.caption(
-        f"계산식: ({n:,}원 ÷ {e:,.2f}원) × {x:,.2f}원 = {final_krw:,.2f}원"
+  col_e, col_x = st.columns(2)
+  with col_e:
+    st.number_input(
+        "현재 달러 환율 (원, E)",
+        min_value=0.01,
+        step=1.0,
+        format="%.2f",
+        key="e_val",
+        on_change=on_param_change,
     )
-
-# ---------------------------------------------------------
-# 모드 2: 퍼센트 형식으로 구매
-# ---------------------------------------------------------
+  with col_x:
+    st.number_input(
+        "기준 환율 (1달러당 x원)",
+        min_value=0.01,
+        step=1.0,
+        format="%.2f",
+        key="x_val",
+        on_change=on_param_change,
+    )
 else:
-  y = st.number_input(
+  st.number_input(
       "적용할 퍼센트 (y%)",
       min_value=0.0,
-      value=5.0,
       step=0.1,
       format="%.2f",
+      key="y_val",
+      on_change=on_param_change,
   )
 
-  y_amount = n * (y / 100)
-  total_with_y = n + y_amount
+st.divider()
 
-  st.divider()
-  col1, col2 = st.columns(2)
-  col1.metric(f"N원의 {y}% 금액", f"{y_amount:,.0f} 원")
-  col2.metric("최종 지출 금액 (N + y%)", f"{total_with_y:,.0f} 원")
+# 1. 구매할 코인 금액 (N)
+st.text_input(
+    "구매할 코인 금액 (원, N)",
+    key="n_str",
+    on_change=on_n_change,
+    placeholder="예: 10,000",
+)
+n_val = parse_int(st.session_state.n_str)
+st.markdown(
+    f"<div class='amount-badge'>👉 코인 금액: <b>{n_val:,}원</b> ({to_korean_money(n_val)})</div>",
+    unsafe_allow_html=True,
+)
 
+btn_n = st.columns(5)
+btn_n[0].button("+1만", on_click=add_to_n, args=(10000,), use_container_width=True)
+btn_n[1].button("+5만", on_click=add_to_n, args=(50000,), use_container_width=True)
+btn_n[2].button(
+    "+10만", on_click=add_to_n, args=(100000,), use_container_width=True
+)
+btn_n[3].button(
+    "+100만", on_click=add_to_n, args=(1000000,), use_container_width=True
+)
+btn_n[4].button(
+    "0원",
+    on_click=lambda: (
+        setattr(st.session_state, "n_str", "0"),
+        on_n_change(),
+    ),
+    use_container_width=True,
+)
+
+st.markdown("<div class='sync-badge'>⇅ 양방향 자동 연동 ⇅</div>", unsafe_allow_html=True)
+
+# 2. 최종 지출 금액 (수정 가능)
+st.text_input(
+    "최종 지출 금액 (원)",
+    key="final_str",
+    on_change=on_final_change,
+    placeholder="예: 10,741",
+)
+final_val = parse_int(st.session_state.final_str)
+st.markdown(
+    f"<div class='amount-badge'>👉 최종 지출: <b>{final_val:,}원</b> ({to_korean_money(final_val)})</div>",
+    unsafe_allow_html=True,
+)
+
+btn_f = st.columns(5)
+btn_f[0].button(
+    "+1만", on_click=add_to_final, args=(10000,), use_container_width=True
+)
+btn_f[1].button(
+    "+5만", on_click=add_to_final, args=(50000,), use_container_width=True
+)
+btn_f[2].button(
+    "+10만", on_click=add_to_final, args=(100000,), use_container_width=True
+)
+btn_f[3].button(
+    "+100만", on_click=add_to_final, args=(1000000,), use_container_width=True
+)
+btn_f[4].button(
+    "0원",
+    on_click=lambda: (
+        setattr(st.session_state, "final_str", "0"),
+        on_final_change(),
+    ),
+    use_container_width=True,
+)
+
+# 하단 정보 요약
+st.divider()
+if st.session_state.mode == "usd":
+  usd_val = n_val / st.session_state.e_val if st.session_state.e_val > 0 else 0
   st.caption(
-      f"계산식: {n:,}원 × {y}% = {y_amount:,.0f}원 | 원금 포함: {total_with_y:,.0f}원"
+      f"1차 환산 달러: **${usd_val:,.4f}** | 계산식: ({n_val:,}원 ÷ {st.session_state.e_val:,.2f}원) × {st.session_state.x_val:,.2f}원 = {final_val:,}원"
+  )
+else:
+  diff = final_val - n_val
+  st.caption(
+      f"추가된 {st.session_state.y_val}% 금액: **{diff:,}원** | 계산식: {n_val:,}원 × (1 + {st.session_state.y_val}%) = {final_val:,}원"
   )
