@@ -329,7 +329,7 @@ btn_f[3].button(
     key="btn_f_100man",
 )
 btn_f[4].button(
-    "0원", on_click=reset_final, use_container_width=True, key="btn_f_zero"
+    "초기화", on_click=reset_final, use_container_width=True, key="btn_f_zero"
 )
 
 # 하단 요약
