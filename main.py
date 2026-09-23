@@ -3,7 +3,7 @@ import streamlit as st
 
 st.set_page_config(page_title="코인 구매 계산기", layout="centered")
 
-# UI 스타일링
+# UI 스타일링 (대형 입력창, 대형 버튼, 한글 배지, 최종 결과 배너)
 st.markdown(
     """
     <style>
@@ -37,7 +37,40 @@ st.markdown(
         font-size: 1.3rem;
         font-weight: 800;
         color: #888;
-        margin: 10px 0;
+        margin: 12px 0;
+    }
+    /* 최종 지출 금액 대형 전광판 카드 */
+    .hero-final-card {
+        background: linear-gradient(135deg, #1976D2 0%, #0D47A1 100%);
+        border-radius: 18px;
+        padding: 24px 20px;
+        text-align: center;
+        color: #FFFFFF;
+        box-shadow: 0 6px 16px rgba(0, 0, 0, 0.2);
+        margin: 24px 0 16px 0;
+    }
+    .hero-final-label {
+        font-size: 1.15rem;
+        font-weight: 600;
+        opacity: 0.9;
+        margin-bottom: 6px;
+        letter-spacing: -0.3px;
+    }
+    .hero-final-price {
+        font-size: 3.2rem;
+        font-weight: 900;
+        line-height: 1.1;
+        letter-spacing: -1px;
+    }
+    .hero-final-price span {
+        font-size: 2rem;
+        font-weight: 700;
+    }
+    .hero-final-korean {
+        font-size: 1.35rem;
+        font-weight: 700;
+        color: #90CAF9;
+        margin-top: 8px;
     }
     </style>
 """,
@@ -171,20 +204,20 @@ def apply_live_rate():
 # ---------------------------------------------------------
 # UI 렌더링
 # ---------------------------------------------------------
-st.title("코인 구매 계산기")
+st.title("⚡ 코인 구매 계산기")
 
 # 계산 모드 선택 대형 버튼
 col_m1, col_m2 = st.columns(2)
 with col_m1:
   btn_usd = "primary" if st.session_state.mode == "usd" else "secondary"
-  if st.button("달러당 계산", type=btn_usd, use_container_width=True):
+  if st.button("💵 달러당 계산", type=btn_usd, use_container_width=True):
     st.session_state.mode = "usd"
     on_n_change()
     st.rerun()
 
 with col_m2:
   btn_pct = "primary" if st.session_state.mode == "percent" else "secondary"
-  if st.button("퍼센트당 계산", type=btn_pct, use_container_width=True):
+  if st.button("📊 퍼센트당 계산", type=btn_pct, use_container_width=True):
     st.session_state.mode = "percent"
     on_n_change()
     st.rerun()
@@ -196,7 +229,7 @@ if st.session_state.mode == "usd":
   st.caption(f"실시간 시장 환율: {live_rate:,.2f}원 / USD")
 
   if st.button(
-      f"현재 환율 바로 적용 ({live_rate:,.2f}원)",
+      f"⚡ 현재 환율 바로 적용 ({live_rate:,.2f}원)",
       use_container_width=True,
       on_click=apply_live_rate,
       key="apply_live_rate_btn",
@@ -278,26 +311,21 @@ btn_n[3].button(
     key="btn_n_100man",
 )
 btn_n[4].button(
-    "초기화", on_click=reset_n, use_container_width=True, key="btn_n_zero"
+    "초기화", on_click=reset_n, use_container_width=True, key="btn_n_reset"
 )
 
 st.markdown(
-    "<div class='sync-badge'>⇅ 양방향 자동 연동 ⇅</div>", unsafe_allow_html=True
+    "<div class='sync-badge'>⇅ 양방향 연동 ⇅</div>", unsafe_allow_html=True
 )
 
-# 2. 최종 지출 금액 (수정 가능)
+# 2. 최종 지출 금액 (직접 수정 가능 인풋)
 st.text_input(
-    "최종 지출 금액 (원)",
+    "최종 지출 금액 직접 수정 (원)",
     key="final_str",
     on_change=on_final_change,
     placeholder="예: 10,741",
 )
 final_val = parse_int(st.session_state.final_str)
-st.markdown(
-    f"<div class='amount-badge'>👉 최종 지출: <b>{final_val:,}원</b>"
-    f" ({to_korean_money(final_val)})</div>",
-    unsafe_allow_html=True,
-)
 
 btn_f = st.columns(5)
 btn_f[0].button(
@@ -329,21 +357,32 @@ btn_f[3].button(
     key="btn_f_100man",
 )
 btn_f[4].button(
-    "초기화", on_click=reset_final, use_container_width=True, key="btn_f_zero"
+    "초기화", on_click=reset_final, use_container_width=True, key="btn_f_reset"
 )
 
-# 하단 요약
-st.divider()
+# 3. 한눈에 들어오는 대형 최종 지출 금액 전광판
+st.markdown(
+    f"""
+    <div class="hero-final-card">
+        <div class="hero-final-label">💳 최종 지출 금액</div>
+        <div class="hero-final-price">{final_val:,} <span>원</span></div>
+        <div class="hero-final-korean">({to_korean_money(final_val)})</div>
+    </div>
+""",
+    unsafe_allow_html=True,
+)
+
+# 하단 세부 계산식 요약
 if st.session_state.mode == "usd":
   usd_val = n_val / st.session_state.e_val if st.session_state.e_val > 0 else 0
   st.caption(
-      f"1차 환산 달러: **${usd_val:,.4f}** | 계산식: ({n_val:,}원 ÷"
+      f"1차 환산: **${usd_val:,.4f}** | 계산식: ({n_val:,}원 ÷"
       f" {st.session_state.e_val:,.2f}원) × {st.session_state.x_val:,.2f}원 ="
       f" {final_val:,}원"
   )
 else:
   diff = final_val - n_val
   st.caption(
-      f"추가된 {st.session_state.y_val}% 금액: **{diff:,}원** | 계산식:"
+      f"추가 수수료({st.session_state.y_val}%): **{diff:,}원** | 계산식:"
       f" {n_val:,}원 × (1 + {st.session_state.y_val}%) = {final_val:,}원"
   )
