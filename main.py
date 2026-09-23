@@ -3,7 +3,7 @@ import streamlit as st
 
 st.set_page_config(page_title="코인 구매 계산기", layout="centered")
 
-# UI 스타일링 (대형 입력창, 대형 버튼, 한글 배지, 최종 결과 배너)
+# UI 스타일링
 st.markdown(
     """
     <style>
@@ -283,32 +283,32 @@ st.markdown(
 
 btn_n = st.columns(5)
 btn_n[0].button(
+    "+1백",
+    on_click=add_to_n,
+    args=(100,),
+    use_container_width=True,
+    key="btn_n_0.01man",
+)
+btn_n[1].button(
+    "+1천",
+    on_click=add_to_n,
+    args=(1000,),
+    use_container_width=True,
+    key="btn_n_0.1man",
+)
+btn_n[2].button(
     "+1만",
     on_click=add_to_n,
     args=(10000,),
     use_container_width=True,
     key="btn_n_1man",
 )
-btn_n[1].button(
-    "+5만",
-    on_click=add_to_n,
-    args=(50000,),
-    use_container_width=True,
-    key="btn_n_5man",
-)
-btn_n[2].button(
+btn_n[3].button(
     "+10만",
     on_click=add_to_n,
     args=(100000,),
     use_container_width=True,
     key="btn_n_10man",
-)
-btn_n[3].button(
-    "+100만",
-    on_click=add_to_n,
-    args=(1000000,),
-    use_container_width=True,
-    key="btn_n_100man",
 )
 btn_n[4].button(
     "초기화", on_click=reset_n, use_container_width=True, key="btn_n_reset"
@@ -329,32 +329,32 @@ final_val = parse_int(st.session_state.final_str)
 
 btn_f = st.columns(5)
 btn_f[0].button(
+    "+1백",
+    on_click=add_to_final,
+    args=(100,),
+    use_container_width=True,
+    key="btn_f_0.01man",
+)
+btn_f[1].button(
+    "+1천",
+    on_click=add_to_final,
+    args=(1000,),
+    use_container_width=True,
+    key="btn_f_0.1man",
+)
+btn_f[2].button(
     "+1만",
     on_click=add_to_final,
     args=(10000,),
     use_container_width=True,
     key="btn_f_1man",
 )
-btn_f[1].button(
-    "+5만",
-    on_click=add_to_final,
-    args=(50000,),
-    use_container_width=True,
-    key="btn_f_5man",
-)
-btn_f[2].button(
+btn_f[3].button(
     "+10만",
     on_click=add_to_final,
     args=(100000,),
     use_container_width=True,
     key="btn_f_10man",
-)
-btn_f[3].button(
-    "+100만",
-    on_click=add_to_final,
-    args=(1000000,),
-    use_container_width=True,
-    key="btn_f_100man",
 )
 btn_f[4].button(
     "초기화", on_click=reset_final, use_container_width=True, key="btn_f_reset"
