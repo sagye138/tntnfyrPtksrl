@@ -145,9 +145,19 @@ def add_to_n(delta):
   on_n_change()
 
 
+def reset_n():
+  st.session_state.n_str = "0"
+  on_n_change()
+
+
 def add_to_final(delta):
   final = max(0, parse_int(st.session_state.final_str) + delta)
   st.session_state.final_str = f"{final:,}"
+  on_final_change()
+
+
+def reset_final():
+  st.session_state.final_str = "0"
   on_final_change()
 
 
@@ -189,6 +199,7 @@ if st.session_state.mode == "usd":
       f"⚡ 현재 환율 바로 적용 ({live_rate:,.2f}원)",
       use_container_width=True,
       on_click=apply_live_rate,
+      key="apply_live_rate_btn",
   ):
     pass
 
@@ -232,29 +243,47 @@ st.text_input(
 )
 n_val = parse_int(st.session_state.n_str)
 st.markdown(
-    f"<div class='amount-badge'>👉 코인 금액: <b>{n_val:,}원</b> ({to_korean_money(n_val)})</div>",
+    f"<div class='amount-badge'>👉 코인 금액: <b>{n_val:,}원</b>"
+    f" ({to_korean_money(n_val)})</div>",
     unsafe_allow_html=True,
 )
 
 btn_n = st.columns(5)
-btn_n[0].button("+1만", on_click=add_to_n, args=(10000,), use_container_width=True)
-btn_n[1].button("+5만", on_click=add_to_n, args=(50000,), use_container_width=True)
+btn_n[0].button(
+    "+1만",
+    on_click=add_to_n,
+    args=(10000,),
+    use_container_width=True,
+    key="btn_n_1man",
+)
+btn_n[1].button(
+    "+5만",
+    on_click=add_to_n,
+    args=(50000,),
+    use_container_width=True,
+    key="btn_n_5man",
+)
 btn_n[2].button(
-    "+10만", on_click=add_to_n, args=(100000,), use_container_width=True
+    "+10만",
+    on_click=add_to_n,
+    args=(100000,),
+    use_container_width=True,
+    key="btn_n_10man",
 )
 btn_n[3].button(
-    "+100만", on_click=add_to_n, args=(1000000,), use_container_width=True
+    "+100만",
+    on_click=add_to_n,
+    args=(1000000,),
+    use_container_width=True,
+    key="btn_n_100man",
 )
 btn_n[4].button(
-    "0원",
-    on_click=lambda: (
-        setattr(st.session_state, "n_str", "0"),
-        on_n_change(),
-    ),
-    use_container_width=True,
+    "0원", on_click=reset_n, use_container_width=True, key="btn_n_zero"
 )
 
-st.markdown("<div class='sync-badge'>⇅ 양방향 자동 연동 ⇅</div>", unsafe_allow_html=True)
+st.markdown(
+    "<div class='sync-badge'>⇅ 양방향 자동 연동 ⇅</div>", unsafe_allow_html=True
+)
 
 # 2. 최종 지출 금액 (수정 가능)
 st.text_input(
@@ -265,41 +294,56 @@ st.text_input(
 )
 final_val = parse_int(st.session_state.final_str)
 st.markdown(
-    f"<div class='amount-badge'>👉 최종 지출: <b>{final_val:,}원</b> ({to_korean_money(final_val)})</div>",
+    f"<div class='amount-badge'>👉 최종 지출: <b>{final_val:,}원</b>"
+    f" ({to_korean_money(final_val)})</div>",
     unsafe_allow_html=True,
 )
 
 btn_f = st.columns(5)
 btn_f[0].button(
-    "+1만", on_click=add_to_final, args=(10000,), use_container_width=True
+    "+1만",
+    on_click=add_to_final,
+    args=(10000,),
+    use_container_width=True,
+    key="btn_f_1man",
 )
 btn_f[1].button(
-    "+5만", on_click=add_to_final, args=(50000,), use_container_width=True
+    "+5만",
+    on_click=add_to_final,
+    args=(50000,),
+    use_container_width=True,
+    key="btn_f_5man",
 )
 btn_f[2].button(
-    "+10만", on_click=add_to_final, args=(100000,), use_container_width=True
+    "+10만",
+    on_click=add_to_final,
+    args=(100000,),
+    use_container_width=True,
+    key="btn_f_10man",
 )
 btn_f[3].button(
-    "+100만", on_click=add_to_final, args=(1000000,), use_container_width=True
+    "+100만",
+    on_click=add_to_final,
+    args=(1000000,),
+    use_container_width=True,
+    key="btn_f_100man",
 )
 btn_f[4].button(
-    "0원",
-    on_click=lambda: (
-        setattr(st.session_state, "final_str", "0"),
-        on_final_change(),
-    ),
-    use_container_width=True,
+    "0원", on_click=reset_final, use_container_width=True, key="btn_f_zero"
 )
 
-# 하단 정보 요약
+# 하단 요약
 st.divider()
 if st.session_state.mode == "usd":
   usd_val = n_val / st.session_state.e_val if st.session_state.e_val > 0 else 0
   st.caption(
-      f"1차 환산 달러: **${usd_val:,.4f}** | 계산식: ({n_val:,}원 ÷ {st.session_state.e_val:,.2f}원) × {st.session_state.x_val:,.2f}원 = {final_val:,}원"
+      f"1차 환산 달러: **${usd_val:,.4f}** | 계산식: ({n_val:,}원 ÷"
+      f" {st.session_state.e_val:,.2f}원) × {st.session_state.x_val:,.2f}원 ="
+      f" {final_val:,}원"
   )
 else:
   diff = final_val - n_val
   st.caption(
-      f"추가된 {st.session_state.y_val}% 금액: **{diff:,}원** | 계산식: {n_val:,}원 × (1 + {st.session_state.y_val}%) = {final_val:,}원"
+      f"추가된 {st.session_state.y_val}% 금액: **{diff:,}원** | 계산식:"
+      f" {n_val:,}원 × (1 + {st.session_state.y_val}%) = {final_val:,}원"
   )
