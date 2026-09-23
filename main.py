@@ -3,7 +3,7 @@ import streamlit as st
 
 st.set_page_config(page_title="코인 구매 계산기", layout="centered")
 
-# UI 스타일링 (대형 입력창, 대형 버튼, 한글 배지)
+# UI 스타일링
 st.markdown(
     """
     <style>
@@ -171,20 +171,20 @@ def apply_live_rate():
 # ---------------------------------------------------------
 # UI 렌더링
 # ---------------------------------------------------------
-st.title("⚡ 코인 구매 계산기")
+st.title("코인 구매 계산기")
 
 # 계산 모드 선택 대형 버튼
 col_m1, col_m2 = st.columns(2)
 with col_m1:
   btn_usd = "primary" if st.session_state.mode == "usd" else "secondary"
-  if st.button("💵 달러당 계산", type=btn_usd, use_container_width=True):
+  if st.button("달러당 계산", type=btn_usd, use_container_width=True):
     st.session_state.mode = "usd"
     on_n_change()
     st.rerun()
 
 with col_m2:
   btn_pct = "primary" if st.session_state.mode == "percent" else "secondary"
-  if st.button("📊 퍼센트당 계산", type=btn_pct, use_container_width=True):
+  if st.button("퍼센트당 계산", type=btn_pct, use_container_width=True):
     st.session_state.mode = "percent"
     on_n_change()
     st.rerun()
@@ -196,7 +196,7 @@ if st.session_state.mode == "usd":
   st.caption(f"실시간 시장 환율: {live_rate:,.2f}원 / USD")
 
   if st.button(
-      f"⚡ 현재 환율 바로 적용 ({live_rate:,.2f}원)",
+      f"현재 환율 바로 적용 ({live_rate:,.2f}원)",
       use_container_width=True,
       on_click=apply_live_rate,
       key="apply_live_rate_btn",
@@ -278,7 +278,7 @@ btn_n[3].button(
     key="btn_n_100man",
 )
 btn_n[4].button(
-    "0원", on_click=reset_n, use_container_width=True, key="btn_n_zero"
+    "초기화", on_click=reset_n, use_container_width=True, key="btn_n_zero"
 )
 
 st.markdown(
